@@ -300,19 +300,17 @@ export default function MentoraChat({
               最初から
             </button>
 
-            <form action="/api/auth/signout" method="post">
-              <button
+                          <button
               type="button"
               onClick={() =>
                 void signOut({
-                  callbackUrl: "/",
+                  redirectTo: "/",
                 })
               }
               className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 shadow-sm transition hover:bg-slate-50 sm:text-sm"
             >
               ログアウト
             </button>
-            </form>
           </div>
         </header>
 
