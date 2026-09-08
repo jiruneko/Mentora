@@ -1,5 +1,7 @@
 "use client";
 
+import { signOut } from "next-auth/react";
+
 import {
   FormEvent,
   KeyboardEvent,
@@ -300,11 +302,16 @@ export default function MentoraChat({
 
             <form action="/api/auth/signout" method="post">
               <button
-                type="submit"
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 shadow-sm transition hover:bg-slate-50 sm:text-sm"
-              >
-                ログアウト
-              </button>
+              type="button"
+              onClick={() =>
+                void signOut({
+                  callbackUrl: "/",
+                })
+              }
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 shadow-sm transition hover:bg-slate-50 sm:text-sm"
+            >
+              ログアウト
+            </button>
             </form>
           </div>
         </header>
