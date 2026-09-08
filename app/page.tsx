@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-
 import {
   FormEvent,
   KeyboardEvent,
@@ -95,101 +94,72 @@ const FOR_WHOM = [
 const STEPS = [
   {
     number: "STEP 1",
+    title: "アカウントを作る",
+    description:
+      "まずは無料でアカウントを作成します。すでにアカウントをお持ちの方は、そのままログインできます。",
+  },
+  {
+    number: "STEP 2",
     title: "今のことを話す",
     description:
       "文章がまとまっていなくても構いません。気になっていることを、そのままMentoraに話してください。",
   },
   {
-    number: "STEP 2",
-    title: "一緒に整理する",
-    description:
-      "Mentoraとの対話を通して、悩み、目標、選択肢、優先順位を少しずつ整理していきます。",
-  },
-  {
     number: "STEP 3",
     title: "次の一歩を決める",
     description:
-      "今日できることや、これから取り組むことを決めます。必要に応じて学習や相談の支援にもつなげます。",
+      "Mentoraとの対話を通して、悩みや目標を整理し、今日からできる小さな一歩を一緒に決めます。",
   },
 ];
 
 function normalizeMath(text: string): string {
   return text
-    .replace(
-      /\\\[((?:.|\n)*?)\\\]/g,
-      (_, expression) => {
-        return `\n$$\n${expression.trim()}\n$$\n`;
-      }
-    )
-    .replace(
-      /\\\(((?:.|\n)*?)\\\)/g,
-      (_, expression) => {
-        return `$${expression.trim()}$`;
-      }
-    );
+    .replace(/\\\[((?:.|\n)*?)\\\]/g, (_, expression) => {
+      return `\n$$\n${expression.trim()}\n$$\n`;
+    })
+    .replace(/\\\(((?:.|\n)*?)\\\)/g, (_, expression) => {
+      return `$${expression.trim()}$`;
+    });
 }
 
-function MentoraMessage({
-  content,
-}: {
-  content: string;
-}) {
+function MentoraMessage({ content }: { content: string }) {
   const normalized = normalizeMath(content);
 
   return (
     <ReactMarkdown
-      remarkPlugins={[
-        remarkGfm,
-        remarkMath,
-      ]}
+      remarkPlugins={[remarkGfm, remarkMath]}
       rehypePlugins={[rehypeKatex]}
       components={{
         h1: ({ children }) => (
-          <h1 className="mb-3 mt-5 text-xl font-bold">
-            {children}
-          </h1>
+          <h1 className="mb-3 mt-5 text-xl font-bold">{children}</h1>
         ),
 
         h2: ({ children }) => (
-          <h2 className="mb-3 mt-5 text-lg font-bold">
-            {children}
-          </h2>
+          <h2 className="mb-3 mt-5 text-lg font-bold">{children}</h2>
         ),
 
         h3: ({ children }) => (
-          <h3 className="mb-2 mt-4 text-base font-bold">
-            {children}
-          </h3>
+          <h3 className="mb-2 mt-4 text-base font-bold">{children}</h3>
         ),
 
         p: ({ children }) => (
-          <p className="my-2 leading-7">
-            {children}
-          </p>
+          <p className="my-2 leading-7">{children}</p>
         ),
 
         ul: ({ children }) => (
-          <ul className="my-3 list-disc space-y-1 pl-6">
-            {children}
-          </ul>
+          <ul className="my-3 list-disc space-y-1 pl-6">{children}</ul>
         ),
 
         ol: ({ children }) => (
-          <ol className="my-3 list-decimal space-y-1 pl-6">
-            {children}
-          </ol>
+          <ol className="my-3 list-decimal space-y-1 pl-6">{children}</ol>
         ),
 
         li: ({ children }) => (
-          <li className="leading-7">
-            {children}
-          </li>
+          <li className="leading-7">{children}</li>
         ),
 
         strong: ({ children }) => (
-          <strong className="font-bold text-slate-900">
-            {children}
-          </strong>
+          <strong className="font-bold text-slate-900">{children}</strong>
         ),
 
         blockquote: ({ children }) => (
@@ -210,88 +180,77 @@ function MentoraMessage({
   );
 }
 
+function AuthButtons({
+  compact = false,
+}: {
+  compact?: boolean;
+}) {
+  if (compact) {
+    return (
+      <div className="flex items-center gap-2">
+        <Link
+          href="/login"
+          className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+        >
+          ログイン
+        </Link>
+
+        <Link
+          href="/signup"
+          className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
+        >
+          無料で始める
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3 sm:flex-row">
+      <Link
+        href="/signup"
+        className="rounded-2xl bg-slate-900 px-7 py-4 text-center text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-700"
+      >
+        無料でMentoraを始める
+      </Link>
+
+      <Link
+        href="/login"
+        className="rounded-2xl border border-slate-200 bg-white px-7 py-4 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+      >
+        すでにアカウントをお持ちの方
+      </Link>
+    </div>
+  );
+}
+
 export default function Home() {
-  const [messages, setMessages] =
-    useState<Message[]>(
-      INITIAL_MESSAGES
-    );
+  const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [errorStatus, setErrorStatus] = useState<number | null>(null);
 
-  const [input, setInput] =
-    useState("");
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const chatRef = useRef<HTMLElement | null>(null);
 
-  const [isLoading, setIsLoading] =
-    useState(false);
-
-  const [error, setError] =
-    useState("");
-
-  const [errorStatus, setErrorStatus] =
-    useState<number | null>(null);
-
-  const messagesContainerRef =
-    useRef<HTMLDivElement | null>(
-      null
-    );
-
-  const textareaRef =
-    useRef<HTMLTextAreaElement | null>(
-      null
-    );
-
-  const chatRef =
-    useRef<HTMLElement | null>(
-      null
-    );
-
-  /*
-   * 初回訪問時だけチャット欄へ移動する。
-   *
-   * 同じブラウザでは2回目以降、
-   * 自動スクロールしない。
-   */
   useEffect(() => {
     try {
-      const hasVisited =
-        window.localStorage.getItem(
-          VISITED_KEY
-        );
+      const hasVisited = window.localStorage.getItem(VISITED_KEY);
 
       if (hasVisited) {
         return;
       }
 
-      window.localStorage.setItem(
-        VISITED_KEY,
-        "true"
-      );
-
-      requestAnimationFrame(() => {
-        chatRef.current?.scrollIntoView(
-          {
-            behavior: "auto",
-            block: "start",
-          }
-        );
-
-        textareaRef.current?.focus({
-          preventScroll: true,
-        });
-      });
+      window.localStorage.setItem(VISITED_KEY, "true");
     } catch {
-      /*
-       * localStorageが利用できなくても
-       * サービス自体は通常通り利用する。
-       */
+      // localStorage が使えない環境でもサービスは継続する
     }
   }, []);
 
-  /*
-   * 会話追加時はページ全体ではなく、
-   * メッセージ領域だけ下へ移動する。
-   */
   useEffect(() => {
-    const container =
-      messagesContainerRef.current;
+    const container = messagesContainerRef.current;
 
     if (!container) {
       return;
@@ -303,9 +262,7 @@ export default function Home() {
     });
   }, [messages, isLoading]);
 
-  function focusTextarea(
-    delay = 0
-  ) {
+  function focusTextarea(delay = 0) {
     window.setTimeout(() => {
       textareaRef.current?.focus({
         preventScroll: true,
@@ -322,12 +279,8 @@ export default function Home() {
     focusTextarea(500);
   }
 
-  async function sendMessage(
-    text?: string
-  ) {
-    const content = (
-      text ?? input
-    ).trim();
+  async function sendMessage(text?: string) {
+    const content = (text ?? input).trim();
 
     if (!content || isLoading) {
       return;
@@ -341,97 +294,52 @@ export default function Home() {
       content,
     };
 
-    const nextMessages = [
-      ...messages,
-      userMessage,
-    ];
+    const nextMessages = [...messages, userMessage];
 
-    /*
-     * 利用者の入力は、
-     * API応答を待たず先に画面へ表示する。
-     */
     setMessages(nextMessages);
     setInput("");
     setIsLoading(true);
 
     try {
-      const response = await fetch(
-        "/api/chat",
-        {
-          method: "POST",
+      const response = await fetch("/api/chat", {
+        method: "POST",
 
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
+        headers: {
+          "Content-Type": "application/json",
+        },
 
-          body: JSON.stringify({
-            messages:
-              nextMessages,
-          }),
-        }
-      );
+        body: JSON.stringify({
+          messages: nextMessages,
+        }),
+      });
 
-      /*
-       * サーバーが何らかの理由で
-       * JSONを返せなかった場合にも、
-       * フロント側をクラッシュさせない。
-       */
-      let data: ChatApiResponse =
-        {};
+      let data: ChatApiResponse = {};
 
       try {
-        data =
-          (await response.json()) as ChatApiResponse;
+        data = (await response.json()) as ChatApiResponse;
       } catch {
         data = {};
       }
 
       if (!response.ok) {
         const errorMessage =
-          data.error ??
-          "Mentoraとの通信に失敗しました。";
+          data.error ?? "Mentoraとの通信に失敗しました。";
 
-        setErrorStatus(
-          response.status
-        );
+        setErrorStatus(response.status);
 
-        /*
-         * 400:
-         * 入力形式などの問題。
-         */
-        if (
-          response.status === 400
-        ) {
+        if (response.status === 400) {
+          setError(errorMessage);
+          return;
+        }
+
+        if (response.status === 401) {
           setError(
-            errorMessage
+            "Mentoraを利用するにはログインが必要です。アカウントをお持ちでない方は無料で登録できます。"
           );
           return;
         }
 
-        /*
-         * 401:
-         * 未ログイン。
-         *
-         * 想定される状態なので
-         * JavaScript例外にはしない。
-         */
-        if (
-          response.status === 401
-        ) {
-          setError(
-            errorMessage
-          );
-          return;
-        }
-
-        /*
-         * 429:
-         * 将来レート制限を追加した場合にも対応。
-         */
-        if (
-          response.status === 429
-        ) {
+        if (response.status === 429) {
           setError(
             data.error ??
               "現在アクセスが集中しています。少し時間を置いてから、もう一度お試しください。"
@@ -439,30 +347,17 @@ export default function Home() {
           return;
         }
 
-        /*
-         * 500 / 502 等:
-         * 利用者には安全なメッセージだけ表示し、
-         * 開発側にはstatusを記録する。
-         */
-        console.error(
-          "Mentora API error:",
-          {
-            status:
-              response.status,
-            message:
-              errorMessage,
-          }
-        );
+        console.error("Mentora API error:", {
+          status: response.status,
+          message: errorMessage,
+        });
 
-        setError(
-          errorMessage
-        );
+        setError(errorMessage);
 
         return;
       }
 
-      const answer =
-        data.message?.trim();
+      const answer = data.message?.trim();
 
       if (!answer) {
         setErrorStatus(502);
@@ -474,32 +369,17 @@ export default function Home() {
         return;
       }
 
-      const assistantMessage: Message =
-        {
-          role: "assistant",
-          content: answer,
-        };
+      const assistantMessage: Message = {
+        role: "assistant",
+        content: answer,
+      };
 
-      setMessages(
-        (previous) => [
-          ...previous,
-          assistantMessage,
-        ]
-      );
+      setMessages((previous) => [...previous, assistantMessage]);
 
       setError("");
       setErrorStatus(null);
     } catch (networkError) {
-      /*
-       * fetch自体に失敗したケース。
-       *
-       * ネットワーク切断、
-       * サーバー到達不能など。
-       */
-      console.error(
-        "Mentora network error:",
-        networkError
-      );
+      console.error("Mentora network error:", networkError);
 
       setErrorStatus(null);
 
@@ -512,22 +392,17 @@ export default function Home() {
     }
   }
 
-  function handleSubmit(
-    event: FormEvent<HTMLFormElement>
-  ) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     void sendMessage();
   }
 
-  function handleKeyDown(
-    event: KeyboardEvent<HTMLTextAreaElement>
-  ) {
+  function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (
       event.key === "Enter" &&
       !event.shiftKey &&
-      !event.nativeEvent
-        .isComposing
+      !event.nativeEvent.isComposing
     ) {
       event.preventDefault();
 
@@ -540,10 +415,7 @@ export default function Home() {
       return;
     }
 
-    setMessages(
-      INITIAL_MESSAGES
-    );
-
+    setMessages(INITIAL_MESSAGES);
     setInput("");
     setError("");
     setErrorStatus(null);
@@ -551,18 +423,15 @@ export default function Home() {
     focusTextarea();
   }
 
-  const showSuggestions =
-    messages.length === 1;
-
-  const needsLogin =
-    errorStatus === 401;
+  const showSuggestions = messages.length === 1;
+  const needsLogin = errorStatus === 401;
 
   return (
     <main className="min-h-screen bg-white text-slate-900">
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/90 backdrop-blur">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
-          <div className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 text-sm font-bold text-white">
               M
             </div>
@@ -576,38 +445,42 @@ export default function Home() {
                 あなたと一緒に考えるAIメンター
               </p>
             </div>
+          </Link>
+
+          <div className="flex items-center gap-4">
+            <nav className="hidden items-center gap-1 lg:flex">
+              <a
+                href="#about"
+                className="px-3 py-2 text-sm text-slate-500 transition hover:text-slate-900"
+              >
+                できること
+              </a>
+
+              <a
+                href="#for-whom"
+                className="px-3 py-2 text-sm text-slate-500 transition hover:text-slate-900"
+              >
+                こんな方へ
+              </a>
+
+              <a
+                href="#how-to-use"
+                className="px-3 py-2 text-sm text-slate-500 transition hover:text-slate-900"
+              >
+                使い方
+              </a>
+
+              <button
+                type="button"
+                onClick={scrollToChat}
+                className="px-3 py-2 text-sm text-slate-500 transition hover:text-slate-900"
+              >
+                チャット
+              </button>
+            </nav>
+
+            <AuthButtons compact />
           </div>
-
-          <nav className="flex items-center gap-2">
-            <a
-              href="#about"
-              className="hidden px-3 py-2 text-sm text-slate-500 transition hover:text-slate-900 md:block"
-            >
-              できること
-            </a>
-
-            <a
-              href="#for-whom"
-              className="hidden px-3 py-2 text-sm text-slate-500 transition hover:text-slate-900 md:block"
-            >
-              こんな方へ
-            </a>
-
-            <a
-              href="#how-to-use"
-              className="hidden px-3 py-2 text-sm text-slate-500 transition hover:text-slate-900 md:block"
-            >
-              使い方
-            </a>
-
-            <button
-              type="button"
-              onClick={scrollToChat}
-              className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
-            >
-              Mentoraを使う
-            </button>
-          </nav>
         </div>
       </header>
 
@@ -634,25 +507,20 @@ export default function Home() {
               今のあなたにできる一歩から考えていきます。
             </p>
 
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-              <button
-                type="button"
-                onClick={scrollToChat}
-                className="rounded-2xl bg-slate-900 px-7 py-4 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-700"
-              >
-                Mentoraに話してみる
-              </button>
-
-              <a
-                href="#about"
-                className="rounded-2xl border border-slate-200 bg-white px-7 py-4 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-              >
-                Mentoraでできること
-              </a>
+            <div className="mt-9">
+              <AuthButtons />
             </div>
 
-            <p className="mt-4 text-xs leading-6 text-slate-400">
-              Mentoraの利用にはログインが必要です。
+            <button
+              type="button"
+              onClick={scrollToChat}
+              className="mt-5 text-sm font-medium text-slate-500 underline decoration-slate-300 underline-offset-4 transition hover:text-slate-900"
+            >
+              まずMentoraの画面を見てみる
+            </button>
+
+            <p className="mt-5 text-xs leading-6 text-slate-400">
+              Mentoraのご利用には無料アカウントが必要です。
             </p>
           </div>
 
@@ -725,34 +593,24 @@ export default function Home() {
           </div>
 
           <div className="mt-12 grid gap-5 md:grid-cols-3">
-            {FEATURES.map(
-              (feature) => (
-                <article
-                  key={
-                    feature.number
-                  }
-                  className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm"
-                >
-                  <p className="text-xs font-bold tracking-[0.18em] text-slate-400">
-                    {
-                      feature.number
-                    }
-                  </p>
+            {FEATURES.map((feature) => (
+              <article
+                key={feature.number}
+                className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm"
+              >
+                <p className="text-xs font-bold tracking-[0.18em] text-slate-400">
+                  {feature.number}
+                </p>
 
-                  <h3 className="mt-5 text-xl font-bold">
-                    {
-                      feature.title
-                    }
-                  </h3>
+                <h3 className="mt-5 text-xl font-bold">
+                  {feature.title}
+                </h3>
 
-                  <p className="mt-4 text-sm leading-7 text-slate-600">
-                    {
-                      feature.description
-                    }
-                  </p>
-                </article>
-              )
-            )}
+                <p className="mt-4 text-sm leading-7 text-slate-600">
+                  {feature.description}
+                </p>
+              </article>
+            ))}
           </div>
         </div>
       </section>
@@ -783,28 +641,22 @@ export default function Home() {
             </div>
 
             <div className="grid gap-px overflow-hidden rounded-3xl border border-slate-200 bg-slate-200 sm:grid-cols-2">
-              {FOR_WHOM.map(
-                (item) => (
-                  <article
-                    key={item.title}
-                    className="bg-white p-7 sm:p-8"
-                  >
-                    <div className="mb-5 h-2 w-2 rounded-full bg-slate-900" />
+              {FOR_WHOM.map((item) => (
+                <article
+                  key={item.title}
+                  className="bg-white p-7 sm:p-8"
+                >
+                  <div className="mb-5 h-2 w-2 rounded-full bg-slate-900" />
 
-                    <h3 className="text-lg font-bold">
-                      {
-                        item.title
-                      }
-                    </h3>
+                  <h3 className="text-lg font-bold">
+                    {item.title}
+                  </h3>
 
-                    <p className="mt-3 text-sm leading-7 text-slate-600">
-                      {
-                        item.description
-                      }
-                    </p>
-                  </article>
-                )
-              )}
+                  <p className="mt-3 text-sm leading-7 text-slate-600">
+                    {item.description}
+                  </p>
+                </article>
+              ))}
             </div>
           </div>
         </div>
@@ -827,37 +679,39 @@ export default function Home() {
 
             <p className="mt-5 text-base leading-8 text-slate-300">
               難しい操作はありません。
+              無料アカウントを作り、
               今考えていることを話すところから始められます。
             </p>
           </div>
 
           <div className="mt-12 grid gap-5 md:grid-cols-3">
-            {STEPS.map(
-              (step) => (
-                <article
-                  key={step.number}
-                  className="rounded-3xl border border-slate-700 bg-slate-800/60 p-7"
-                >
-                  <p className="text-xs font-bold tracking-[0.18em] text-slate-400">
-                    {
-                      step.number
-                    }
-                  </p>
+            {STEPS.map((step) => (
+              <article
+                key={step.number}
+                className="rounded-3xl border border-slate-700 bg-slate-800/60 p-7"
+              >
+                <p className="text-xs font-bold tracking-[0.18em] text-slate-400">
+                  {step.number}
+                </p>
 
-                  <h3 className="mt-5 text-xl font-bold">
-                    {
-                      step.title
-                    }
-                  </h3>
+                <h3 className="mt-5 text-xl font-bold">
+                  {step.title}
+                </h3>
 
-                  <p className="mt-4 text-sm leading-7 text-slate-300">
-                    {
-                      step.description
-                    }
-                  </p>
-                </article>
-              )
-            )}
+                <p className="mt-4 text-sm leading-7 text-slate-300">
+                  {step.description}
+                </p>
+              </article>
+            ))}
+          </div>
+
+          <div className="mt-10">
+            <Link
+              href="/signup"
+              className="inline-flex rounded-2xl bg-white px-7 py-4 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
+            >
+              無料アカウントを作る
+            </Link>
           </div>
         </div>
       </section>
@@ -898,7 +752,7 @@ export default function Home() {
               onClick={scrollToChat}
               className="mt-7 shrink-0 rounded-2xl bg-slate-900 px-7 py-4 text-sm font-semibold text-white transition hover:bg-slate-700 lg:mt-0"
             >
-              まずMentoraに相談する
+              Mentoraを見てみる
             </button>
           </div>
         </div>
@@ -911,7 +765,7 @@ export default function Home() {
         className="scroll-mt-20 bg-[#f4f9f8] py-20 sm:py-28"
       >
         <div className="mx-auto w-full max-w-5xl px-4 sm:px-6">
-          <div className="mb-10 text-center">
+          <div className="mb-8 text-center">
             <p className="text-xs font-bold tracking-[0.22em] text-[#6f948d]">
               TALK WITH MENTORA
             </p>
@@ -924,6 +778,37 @@ export default function Home() {
               きれいな文章にする必要はありません。
               思いついたことを、そのまま入力してください。
             </p>
+          </div>
+
+          {/* Auth notice */}
+          <div className="mx-auto mb-6 max-w-3xl rounded-2xl border border-[#cddfdb] bg-white px-5 py-4 shadow-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-bold text-slate-900">
+                  Mentoraの利用にはログインが必要です
+                </p>
+
+                <p className="mt-1 text-xs leading-5 text-slate-500">
+                  初めての方は無料アカウントを作成してください。
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <Link
+                  href="/login"
+                  className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  ログイン
+                </Link>
+
+                <Link
+                  href="/signup"
+                  className="rounded-xl bg-[#315e58] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#274e49]"
+                >
+                  無料で登録
+                </Link>
+              </div>
+            </div>
           </div>
 
           <div className="overflow-hidden rounded-[2rem] border border-[#cddfdb] bg-white shadow-xl shadow-slate-200/40">
@@ -947,12 +832,8 @@ export default function Home() {
 
               <button
                 type="button"
-                onClick={
-                  resetConversation
-                }
-                disabled={
-                  isLoading
-                }
+                onClick={resetConversation}
+                disabled={isLoading}
                 className="rounded-xl border border-[#cddfdb] bg-white px-3 py-2 text-xs font-medium text-[#56736e] transition hover:bg-[#f4f9f8] disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
               >
                 最初から
@@ -961,59 +842,45 @@ export default function Home() {
 
             {/* Messages */}
             <div
-              ref={
-                messagesContainerRef
-              }
+              ref={messagesContainerRef}
               className="h-[520px] overflow-y-auto bg-[#fcfefe] px-4 py-6 sm:px-7 sm:py-7"
             >
               <div className="mx-auto max-w-3xl space-y-5">
-                {messages.map(
-                  (
-                    message,
-                    index
-                  ) => {
-                    const isUser =
-                      message.role ===
-                      "user";
+                {messages.map((message, index) => {
+                  const isUser = message.role === "user";
 
-                    return (
+                  return (
+                    <div
+                      key={`${message.role}-${index}`}
+                      className={`flex ${
+                        isUser
+                          ? "justify-end"
+                          : "justify-start"
+                      }`}
+                    >
                       <div
-                        key={`${message.role}-${index}`}
-                        className={`flex ${
+                        className={`max-w-[90%] rounded-3xl px-4 py-3 text-sm leading-7 sm:max-w-[82%] sm:px-5 sm:py-4 sm:text-[15px] ${
                           isUser
-                            ? "justify-end"
-                            : "justify-start"
+                            ? "rounded-br-md bg-[#315e58] text-white"
+                            : "rounded-bl-md border border-[#dce9e6] bg-[#eef6f4] text-slate-800"
                         }`}
                       >
-                        <div
-                          className={`max-w-[90%] rounded-3xl px-4 py-3 text-sm leading-7 sm:max-w-[82%] sm:px-5 sm:py-4 sm:text-[15px] ${
-                            isUser
-                              ? "rounded-br-md bg-[#315e58] text-white"
-                              : "rounded-bl-md border border-[#dce9e6] bg-[#eef6f4] text-slate-800"
-                          }`}
-                        >
-                          {isUser ? (
-                            <div className="whitespace-pre-wrap break-words">
-                              {
-                                message.content
-                              }
-                            </div>
-                          ) : (
-                            <div className="mentora-markdown break-words">
-                              <MentoraMessage
-                                content={
-                                  message.content
-                                }
-                              />
-                            </div>
-                          )}
-                        </div>
+                        {isUser ? (
+                          <div className="whitespace-pre-wrap break-words">
+                            {message.content}
+                          </div>
+                        ) : (
+                          <div className="mentora-markdown break-words">
+                            <MentoraMessage
+                              content={message.content}
+                            />
+                          </div>
+                        )}
                       </div>
-                    );
-                  }
-                )}
+                    </div>
+                  );
+                })}
 
-                {/* Suggestions */}
                 {showSuggestions && (
                   <div className="pt-3">
                     <p className="mb-3 text-center text-xs text-[#829e99]">
@@ -1021,36 +888,23 @@ export default function Home() {
                     </p>
 
                     <div className="grid gap-2 sm:grid-cols-2">
-                      {SUGGESTIONS.map(
-                        (
-                          suggestion
-                        ) => (
-                          <button
-                            key={
-                              suggestion
-                            }
-                            type="button"
-                            disabled={
-                              isLoading
-                            }
-                            onClick={() =>
-                              void sendMessage(
-                                suggestion
-                              )
-                            }
-                            className="rounded-2xl border border-[#cddfdb] bg-white px-4 py-3 text-left text-sm leading-6 text-slate-700 shadow-sm transition hover:border-[#91b5ae] hover:bg-[#f4f9f8] disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            {
-                              suggestion
-                            }
-                          </button>
-                        )
-                      )}
+                      {SUGGESTIONS.map((suggestion) => (
+                        <button
+                          key={suggestion}
+                          type="button"
+                          disabled={isLoading}
+                          onClick={() =>
+                            void sendMessage(suggestion)
+                          }
+                          className="rounded-2xl border border-[#cddfdb] bg-white px-4 py-3 text-left text-sm leading-6 text-slate-700 shadow-sm transition hover:border-[#91b5ae] hover:bg-[#f4f9f8] disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {suggestion}
+                        </button>
+                      ))}
                     </div>
                   </div>
                 )}
 
-                {/* Loading */}
                 {isLoading && (
                   <div className="flex justify-start">
                     <div className="rounded-3xl rounded-bl-md border border-[#dce9e6] bg-[#eef6f4] px-5 py-4">
@@ -1073,19 +927,28 @@ export default function Home() {
 
             {/* Error */}
             {error && (
-              <div className="border-t border-red-100 bg-red-50 px-4 py-4 sm:px-7">
-                <div className="mx-auto flex max-w-3xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="border-t border-red-100 bg-red-50 px-4 py-5 sm:px-7">
+                <div className="mx-auto max-w-3xl">
                   <p className="text-sm leading-6 text-red-700">
                     {error}
                   </p>
 
                   {needsLogin && (
-                    <Link
-                      href="/login"
-                      className="shrink-0 rounded-xl bg-red-700 px-4 py-2 text-center text-sm font-semibold text-white transition hover:bg-red-800"
-                    >
-                      ログインする
-                    </Link>
+                    <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                      <Link
+                        href="/login"
+                        className="rounded-xl border border-red-200 bg-white px-4 py-2.5 text-center text-sm font-semibold text-red-700 transition hover:bg-red-50"
+                      >
+                        ログイン
+                      </Link>
+
+                      <Link
+                        href="/signup"
+                        className="rounded-xl bg-red-700 px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-red-800"
+                      >
+                        無料アカウントを作る
+                      </Link>
+                    </div>
                   )}
                 </div>
               </div>
@@ -1094,42 +957,23 @@ export default function Home() {
             {/* Input */}
             <div className="border-t border-[#dce9e6] bg-[#f8fbfa] px-3 py-4 sm:px-6 sm:py-5">
               <form
-                onSubmit={
-                  handleSubmit
-                }
+                onSubmit={handleSubmit}
                 className="mx-auto max-w-3xl"
               >
                 <div className="flex items-end gap-2 rounded-2xl border border-[#abcac4] bg-white p-2 shadow-sm transition focus-within:border-[#5f8f87] focus-within:ring-4 focus-within:ring-[#dcece8]">
                   <textarea
-                    ref={
-                      textareaRef
-                    }
+                    ref={textareaRef}
                     value={input}
-                    onChange={(
-                      event
-                    ) => {
-                      setInput(
-                        event.target
-                          .value
-                      );
+                    onChange={(event) => {
+                      setInput(event.target.value);
 
-                      if (
-                        error
-                      ) {
-                        setError(
-                          ""
-                        );
-                        setErrorStatus(
-                          null
-                        );
+                      if (error) {
+                        setError("");
+                        setErrorStatus(null);
                       }
                     }}
-                    onKeyDown={
-                      handleKeyDown
-                    }
-                    disabled={
-                      isLoading
-                    }
+                    onKeyDown={handleKeyDown}
+                    disabled={isLoading}
                     rows={1}
                     maxLength={3000}
                     placeholder="Mentoraに話してみる..."
@@ -1138,15 +982,10 @@ export default function Home() {
 
                   <button
                     type="submit"
-                    disabled={
-                      !input.trim() ||
-                      isLoading
-                    }
+                    disabled={!input.trim() || isLoading}
                     className="flex h-11 shrink-0 items-center justify-center rounded-xl bg-[#315e58] px-5 text-sm font-semibold text-white transition hover:bg-[#274e49] disabled:cursor-not-allowed disabled:bg-[#dbe5e3] disabled:text-[#8fa29e]"
                   >
-                    {isLoading
-                      ? "送信中"
-                      : "送信"}
+                    {isLoading ? "送信中" : "送信"}
                   </button>
                 </div>
 
@@ -1156,10 +995,7 @@ export default function Home() {
                   </span>
 
                   <span>
-                    {
-                      input.length
-                    }{" "}
-                    / 3000
+                    {input.length} / 3000
                   </span>
                 </div>
               </form>
@@ -1191,16 +1027,25 @@ export default function Home() {
             まだ目標が決まっていなくても、
             うまく言葉にできなくても大丈夫です。
             <br />
-            Mentoraと一緒に、今のところから始めましょう。
+            無料アカウントを作って、
+            Mentoraと一緒に今のところから始めましょう。
           </p>
 
-          <button
-            type="button"
-            onClick={scrollToChat}
-            className="mt-8 rounded-2xl bg-slate-900 px-8 py-4 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-700"
-          >
-            Mentoraに話してみる
-          </button>
+          <div className="mx-auto mt-8 flex max-w-xl flex-col justify-center gap-3 sm:flex-row">
+            <Link
+              href="/signup"
+              className="rounded-2xl bg-slate-900 px-8 py-4 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-700"
+            >
+              無料で始める
+            </Link>
+
+            <Link
+              href="/login"
+              className="rounded-2xl border border-slate-200 bg-white px-8 py-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              ログイン
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -1219,6 +1064,20 @@ export default function Home() {
             </div>
 
             <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-500">
+              <Link
+                href="/login"
+                className="transition hover:text-slate-900"
+              >
+                ログイン
+              </Link>
+
+              <Link
+                href="/signup"
+                className="transition hover:text-slate-900"
+              >
+                新規登録
+              </Link>
+
               <Link
                 href="/privacy"
                 className="transition hover:text-slate-900"
